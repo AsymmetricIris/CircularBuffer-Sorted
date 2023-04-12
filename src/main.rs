@@ -12,7 +12,11 @@ fn main() {
 
     println!("Buffer : {}", int_bffr.buffer[6]);
 
-    let access = int_bffr.binarySearch(8);
+    let access = int_bffr.binary_search(8);
+
+    println!("\n First element: {}", int_bffr.get_first());
+    println!("\n Last element: {}", int_bffr.get_last());
+
     match access {
         Ok(access)=> {
             println!("\n Searched element: {}", access);
@@ -79,7 +83,7 @@ impl<T: Clone + std::cmp::PartialEq + std::cmp::PartialOrd> CircularBuffer<T> {
     }
 
     // interface to recursive binary search function
-    fn binarySearch(&self, target:T) -> Result<T, String>
+    fn binary_search(&self, target:T) -> Result<T, String>
     {
         // TODO - optimize
         // when function called but buffer unsorted
@@ -100,7 +104,7 @@ impl<T: Clone + std::cmp::PartialEq + std::cmp::PartialOrd> CircularBuffer<T> {
         else                                                //otherwise, binary search the buffer
         { 
             // TODO
-            search_result = self.binarySearchRecurse(target.clone(), search_min, search_max);
+            search_result = self.binary_search_recurse(target.clone(), search_min, search_max);
         }
 
         match search_result {
@@ -121,48 +125,31 @@ impl<T: Clone + std::cmp::PartialEq + std::cmp::PartialOrd> CircularBuffer<T> {
     }
 
     //TODO - document
-    //TODO - implement
-    fn binarySearchRecurse(&self, target:T, search_min:usize, search_max:usize) -> Result<T, String>
+    fn binary_search_recurse(&self, target:T, search_min:usize, search_max:usize) -> Result<T, String>
     {
-        let search_idx:usize = ((search_max - search_min)/2) + 1;
-        let mut search_result:Result<T, String> = self.at(search_idx);
-        let search_val = search_result.clone().unwrap();
+        //err case: when begin later than end, panic
+        if search_min > search_max
+        {
+            return Err(format!("Could not find target: {}", String::from("target")));
+        }
+
+        let search_idx:usize = (search_max + search_min) / 2;
+        let search_val:T = self.at(search_idx).unwrap();
 
         //find the closest match to target in the buffer
-        if search_val == target || search_idx == search_min
+        if search_val == target
         {
-            //TODO - remove unnecessary
-            search_result = self.at(search_idx);
+            Ok(search_val.clone())
         }
-        else if target == self.at(search_max).unwrap()              // if target is highest, return highest
-        {            
-            search_result = self.at(self.end_idx);                  // will result in search biasing upward
-        } 
-        else if target == self.at(search_min).unwrap()              // if target is lowest, return lowest
-        {   
-            search_result = self.at(self.start_idx);
-        }
-        else if search_val < target               // when target is greater than search_result, search between search_idx and end_idx 
+        else if target > search_val
         { 
             // search the upper half of the search range
-            search_result = self.binarySearchRecurse(target.clone(), search_idx, search_max);
+            self.binary_search_recurse(target.clone(), search_idx + 1, search_max)
         } 
-        else if target < search_val
+        else // if target < search_val
         {
-            // search the upper half of the search range
-            search_result = self.binarySearchRecurse(target.clone(), search_min, search_idx);
-        }
-
-        match search_result {
-            Ok(result) => {
-                println!("Min : {}", search_min);
-                println!("Idx : {}", search_idx);
-                println!("Max : {}", search_max);
-                Ok(result) 
-            },
-            Err(e) => {
-                return Err(String::from("Could not find target: ".to_owned() + &String::from(e)));
-            }
+            // search the lower half of the search range
+            self.binary_search_recurse(target.clone(), search_min, search_idx - 1)
         }
     }
 }
